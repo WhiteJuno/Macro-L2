@@ -4,7 +4,8 @@ Sub ConsolidarAlertAgeReports_SeleccionManual()
     Dim archivo As String
     Dim archivos() As String
     Dim contador As Long
-    Dim seleccion As Variant
+    Dim respuesta As Variant
+    Dim indice As Long
     Dim wbOrigen As Workbook
     Dim wsDestino As Worksheet
     Dim ultimaFila As Long
@@ -31,27 +32,30 @@ Sub ConsolidarAlertAgeReports_SeleccionManual()
     End If
     
     If contador = 1 Then
-        seleccion = archivos(1)
+        indice = 1
     Else
-        seleccion = Application.InputBox( _
-            Prompt:="Se encontraron varios archivos:" & vbNewLine & vbNewLine & _
-                    ListaArchivos(archivos) & vbNewLine & _
-                    "Escribe el número del archivo que quieres usar:", _
-            Title:="Seleccionar archivo", Type:=1)
+        respuesta = InputBox( _
+            "Se encontraron varios archivos:" & vbNewLine & vbNewLine & _
+            ListaArchivos(archivos) & vbNewLine & _
+            "Escribe el número del archivo que quieres usar:", _
+            "Seleccionar archivo")
         
-        If seleccion = False Then
+        If respuesta = "" Then Exit Sub  ' cancelar o vacío
+        
+        If Not IsNumeric(respuesta) Then
+            MsgBox "Debes escribir un número válido."
             Exit Sub
         End If
         
-        If seleccion < 1 Or seleccion > contador Then
-            MsgBox "Número inválido."
+        indice = CLng(respuesta)
+        
+        If indice < 1 Or indice > contador Then
+            MsgBox "Número fuera de rango."
             Exit Sub
         End If
-        
-        seleccion = archivos(seleccion)
     End If
     
-    Set wbOrigen = Workbooks.Open(ruta & seleccion)
+    Set wbOrigen = Workbooks.Open(ruta & archivos(indice))
     
     ultimaFilaOrigen = wbOrigen.Sheets(1).Cells(wbOrigen.Sheets(1).Rows.Count, "A").End(xlUp).Row
     Set rangoCopiar = wbOrigen.Sheets(1).Range("A1:F" & ultimaFilaOrigen)
@@ -64,7 +68,7 @@ Sub ConsolidarAlertAgeReports_SeleccionManual()
     wbOrigen.Close False
     Application.CutCopyMode = False
     
-    MsgBox "Datos extraídos del archivo: " & seleccion
+    MsgBox "Datos extraídos del archivo: " & archivos(indice)
 
 End Sub
 
