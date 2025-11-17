@@ -1,52 +1,81 @@
-Sub ConsolidarAlertAgeReports()
+Sub ConsolidarAlertAgeReports_SeleccionManual()
+
     Dim ruta As String
     Dim archivo As String
+    Dim archivos() As String
+    Dim contador As Long
+    Dim seleccion As Variant
     Dim wbOrigen As Workbook
     Dim wsDestino As Worksheet
     Dim ultimaFila As Long
-    Dim rangoCopiar As Range
     Dim ultimaFilaOrigen As Long
+    Dim rangoCopiar As Range
     
-    ' Carpeta de descargas
     ruta = Environ$("USERPROFILE") & "\Downloads\"
     
-    ' Establecer hoja de destino
-    On Error Resume Next
     Set wsDestino = ThisWorkbook.Sheets("Alert Age Report")
-    On Error GoTo 0
     
-    If wsDestino Is Nothing Then
-        MsgBox "No se encontró la hoja 'Alert Age Report' en este libro.", vbExclamation
-        Exit Sub
-    End If
-    
-    ' Primer archivo que coincida con el patrón
     archivo = Dir(ruta & "AlertAgeReport_*.xlsx")
     
+    contador = 0
     Do While archivo <> ""
-        ' Abrir archivo
-        Set wbOrigen = Workbooks.Open(ruta & archivo)
-        
-        ' Tomar la última fila con datos en la hoja de origen
-        ultimaFilaOrigen = wbOrigen.Sheets(1).Cells(wbOrigen.Sheets(1).Rows.Count, "A").End(xlUp).Row
-        
-        ' Definir rango a copiar (columnas A-F)
-        Set rangoCopiar = wbOrigen.Sheets(1).Range("A1:F" & ultimaFilaOrigen)
-        
-        ' Encontrar última fila disponible en la hoja destino
-        ultimaFila = wsDestino.Cells(wsDestino.Rows.Count, "A").End(xlUp).Row + 1
-        
-        ' Copiar y pegar
-        rangoCopiar.Copy
-        wsDestino.Cells(ultimaFila, 1).PasteSpecial xlPasteValues
-        
-        ' Cerrar archivo origen sin guardar
-        wbOrigen.Close SaveChanges:=False
-        
-        ' Siguiente archivo
+        contador = contador + 1
+        ReDim Preserve archivos(1 To contador)
+        archivos(contador) = archivo
         archivo = Dir
     Loop
     
+    If contador = 0 Then
+        MsgBox "No se encontraron archivos AlertAgeReport en Descargas."
+        Exit Sub
+    End If
+    
+    If contador = 1 Then
+        seleccion = archivos(1)
+    Else
+        seleccion = Application.InputBox( _
+            Prompt:="Se encontraron varios archivos:" & vbNewLine & vbNewLine & _
+                    ListaArchivos(archivos) & vbNewLine & _
+                    "Escribe el número del archivo que quieres usar:", _
+            Title:="Seleccionar archivo", Type:=1)
+        
+        If seleccion = False Then
+            Exit Sub
+        End If
+        
+        If seleccion < 1 Or seleccion > contador Then
+            MsgBox "Número inválido."
+            Exit Sub
+        End If
+        
+        seleccion = archivos(seleccion)
+    End If
+    
+    Set wbOrigen = Workbooks.Open(ruta & seleccion)
+    
+    ultimaFilaOrigen = wbOrigen.Sheets(1).Cells(wbOrigen.Sheets(1).Rows.Count, "A").End(xlUp).Row
+    Set rangoCopiar = wbOrigen.Sheets(1).Range("A1:F" & ultimaFilaOrigen)
+    
+    ultimaFila = wsDestino.Cells(wsDestino.Rows.Count, "A").End(xlUp).Row + 1
+    
+    rangoCopiar.Copy
+    wsDestino.Cells(ultimaFila, 1).PasteSpecial xlPasteValues
+    
+    wbOrigen.Close False
     Application.CutCopyMode = False
-    MsgBox "Consolidación completada.", vbInformation
+    
+    MsgBox "Datos extraídos del archivo: " & seleccion
+
 End Sub
+
+
+Function ListaArchivos(arr() As String) As String
+    Dim i As Long
+    Dim txt As String
+    
+    For i = LBound(arr) To UBound(arr)
+        txt = txt & i & ") " & arr(i) & vbNewLine
+    Next i
+    
+    ListaArchivos = txt
+End Function
