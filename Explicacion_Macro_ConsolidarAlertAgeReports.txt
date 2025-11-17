@@ -1,0 +1,162 @@
+ConsolidarAlertAgeReports_SeleccionManual - Explicación paso a paso
+
+Este documento explica línea por línea y en bloque lo que hace la macro
+ConsolidarAlertAgeReports_SeleccionManual. Está pensado para que puedas
+copiar, pegar y entender cada parte.
+
+1) Inicio del procedimiento
+Sub ConsolidarAlertAgeReports_SeleccionManual()
+- Declara el procedimiento (macro). Es el nombre que verás en la lista de macros
+  dentro de Excel (Alt+F8).
+
+2) Declaración de variables
+Dim ruta As String
+Dim archivo As String
+Dim archivos() As String
+Dim contador As Long
+Dim respuesta As Variant
+Dim indice As Long
+Dim wbOrigen As Workbook
+Dim wsDestino As Worksheet
+Dim ultimaFila As Long
+Dim ultimaFilaOrigen As Long
+Dim rangoCopiar As Range
+
+- "Dim" crea variables que usaremos durante la macro.
+- 'ruta' y 'archivo' guardan textos (strings) con la ruta y nombres.
+- 'archivos()' es un array dinámico para guardar todos los nombres encontrados.
+- 'contador' lleva la cuenta de cuantos archivos se encontraron.
+- 'respuesta' almacena lo que el usuario ingresa en el InputBox (Variant evita errores de tipo).
+- 'indice' será el número del archivo elegido por el usuario.
+- 'wbOrigen' será el Workbook (archivo) que abriremos.
+- 'wsDestino' es la hoja del libro donde pegaremos los datos.
+- 'ultimaFila' y 'ultimaFilaOrigen' calculan hasta dónde pegar y hasta dónde copiar.
+- 'rangoCopiar' es el rango A:F que vamos a copiar del archivo origen.
+
+3) Establecer la carpeta Descargas
+ruta = Environ$("USERPROFILE") & "\Downloads\"
+
+- Environ$("USERPROFILE") devuelve la carpeta de usuario (ej. C:\Users\TuUsuario).
+- Concatenamos "\Downloads\" para apuntar a la carpeta Descargas del usuario.
+- Así no necesitas escribir la ruta completa a mano.
+
+4) Obtener la hoja destino dentro del libro que contiene la macro
+Set wsDestino = ThisWorkbook.Sheets("Alert Age Report")
+
+- ThisWorkbook es el libro donde está guardada la macro.
+- Buscamos la hoja llamada exactamente "Alert Age Report".
+- Si ese nombre no existe, Excel dará error. Asegúrate de que el nombre sea exacto.
+
+5) Buscar el primer archivo que coincida con el patrón
+archivo = Dir(ruta & "AlertAgeReport_*.xlsx")
+
+- Dir con el patrón devuelve el primer nombre de archivo que coincida.
+- Ejemplo: AlertAgeReport_20251114.xlsx o AlertAgeReport_20251114 (1).xlsx.
+- Si no hay coincidencias, 'archivo' será "" (cadena vacía).
+
+6) Recorrer todos los archivos y guardarlos en un array
+contador = 0
+Do While archivo <> ""
+    contador = contador + 1
+    ReDim Preserve archivos(1 To contador)
+    archivos(contador) = archivo
+    archivo = Dir
+Loop
+
+- Iniciamos contador en 0.
+- Mientras 'archivo' no sea cadena vacía:
+  - Incrementamos contador.
+  - ReDim Preserve redimensiona el array sin perder su contenido.
+  - Guardamos el nombre del archivo en el array.
+  - Llamar a Dir sin parámetros obtiene el siguiente archivo que coincide.
+- Al terminar, 'archivos' contiene todos los nombres y 'contador' su cantidad.
+
+7) Manejo si no hay archivos
+If contador = 0 Then
+    MsgBox "No se encontraron archivos AlertAgeReport en Descargas."
+    Exit Sub
+End If
+
+- Si no se encontró ninguno, avisamos y salimos de la macro.
+
+8) Si hay solo uno, lo tomamos; si hay varios, pedir al usuario
+If contador = 1 Then
+    indice = 1
+Else
+    respuesta = InputBox( ... )
+    If respuesta = "" Then Exit Sub
+    If Not IsNumeric(respuesta) Then
+        MsgBox "Debes escribir un número válido."
+        Exit Sub
+    End If
+    indice = CLng(respuesta)
+    If indice < 1 Or indice > contador Then
+        MsgBox "Número fuera de rango."
+        Exit Sub
+    End If
+End If
+
+- Si hay solo un archivo, lo usamos automáticamente.
+- Si hay varios, mostramos un InputBox con la lista.
+- Si el usuario cancela o deja vacío, salimos.
+- Verificamos que la respuesta sea numérica.
+- Convertimos la respuesta a número entero con CLng.
+- Comprobamos que esté dentro del rango valido (1..contador).
+
+9) Abrir el archivo seleccionado
+Set wbOrigen = Workbooks.Open(ruta & archivos(indice))
+
+- Abrimos el archivo seleccionado usando su ruta completa.
+- wbOrigen ahora apunta al Workbook que acabamos de abrir.
+
+10) Determinar hasta dónde hay datos en la hoja origen
+ultimaFilaOrigen = wbOrigen.Sheets(1).Cells(wbOrigen.Sheets(1).Rows.Count, "A").End(xlUp).Row
+
+- Esta línea busca la última fila con datos en la columna A de la primera hoja.
+- Rows.Count da el número máximo de filas (1,048,576 en Excel moderno).
+- .End(xlUp) sube desde la última fila hasta encontrar la última celda con datos.
+- .Row devuelve el número de esa fila.
+
+11) Definir el rango a copiar (columnas A:F)
+Set rangoCopiar = wbOrigen.Sheets(1).Range("A1:F" & ultimaFilaOrigen)
+
+- Construye un rango desde A1 hasta F + última fila con datos.
+- Esto asegura que copiamos solo hasta donde hay contenido.
+
+12) Encontrar donde pegar en la hoja destino (siguiente fila libre)
+ultimaFila = wsDestino.Cells(wsDestino.Rows.Count, "A").End(xlUp).Row + 1
+
+- Busca la última fila ocupada en la columna A del libro destino y suma 1.
+- El resultado es la primera fila vacía donde empezaremos a pegar.
+
+13) Copiar y pegar solo valores
+rangoCopiar.Copy
+wsDestino.Cells(ultimaFila, 1).PasteSpecial xlPasteValues
+
+- Copiamos el rango y pegamos solo valores (sin fórmulas ni formatos).
+- Pegamos comenzando en la celda A de 'ultimaFila'.
+
+14) Cerrar el archivo origen sin guardar cambios
+wbOrigen.Close False
+Application.CutCopyMode = False
+
+- Cierra el workbook origen sin guardar (False).
+- CutCopyMode False limpia el portapapeles de Excel.
+
+15) Mensaje final y fin de la macro
+MsgBox "Datos extraídos del archivo: " & archivos(indice)
+
+- Muestra un mensaje confirmando qué archivo procesó la macro.
+
+Función auxiliar: ListaArchivos
+Function ListaArchivos(arr() As String) As String
+    Dim i As Long
+    Dim txt As String
+    For i = LBound(arr) To UBound(arr)
+        txt = txt & i & ") " & arr(i) & vbNewLine
+    Next i
+    ListaArchivos = txt
+End Function
+
+- Recorre el array y genera un texto numerado con los nombres de archivo.
+- Ese texto se usa en el InputBox para que el usuario elija.
