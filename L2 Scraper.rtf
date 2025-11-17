@@ -1,40 +1,52 @@
-Sub LeerAlertAgeReports()
-
+Sub ConsolidarAlertAgeReports()
     Dim ruta As String
     Dim archivo As String
-    Dim cn As Object, rs As Object
-    Dim consulta As String
-    Dim destino As Range
-
-    ruta = Environ$("USERPROFILE") & "\Downloads\"
-    archivo = Dir(ruta & "AlertAgeReport_*")
+    Dim wbOrigen As Workbook
+    Dim wsDestino As Worksheet
+    Dim ultimaFila As Long
+    Dim rangoCopiar As Range
+    Dim ultimaFilaOrigen As Long
     
-    Set destino = ThisWorkbook.Sheets("Alert Age Report").Range("A1")
-
+    ' Carpeta de descargas
+    ruta = Environ$("USERPROFILE") & "\Downloads\"
+    
+    ' Establecer hoja de destino
+    On Error Resume Next
+    Set wsDestino = ThisWorkbook.Sheets("Alert Age Report")
+    On Error GoTo 0
+    
+    If wsDestino Is Nothing Then
+        MsgBox "No se encontró la hoja 'Alert Age Report' en este libro.", vbExclamation
+        Exit Sub
+    End If
+    
+    ' Primer archivo que coincida con el patrón
+    archivo = Dir(ruta & "AlertAgeReport_*.xlsx")
+    
     Do While archivo <> ""
-
-        Set cn = CreateObject("ADODB.Connection")
-        Set rs = CreateObject("ADODB.Recordset")
-
-        cn.Open "Provider=Microsoft.ACE.OLEDB.12.0;" & _
-                "Data Source=" & ruta & archivo & ";" & _
-                "Extended Properties=""Excel 12.0;HDR=YES;IMEX=1"";"
-
-        consulta = "SELECT * FROM [Alert Age Report$A:F]"
-        rs.Open consulta, cn
-
-        destino.Parent.Cells(destino.Parent.Rows.Count, "A").End(xlUp).Offset(1, 0).CopyFromRecordset rs
-
-        rs.Close
-        cn.Close
-
-        Set rs = Nothing
-        Set cn = Nothing
-
-        archivo = Dir()
-
+        ' Abrir archivo
+        Set wbOrigen = Workbooks.Open(ruta & archivo)
+        
+        ' Tomar la última fila con datos en la hoja de origen
+        ultimaFilaOrigen = wbOrigen.Sheets(1).Cells(wbOrigen.Sheets(1).Rows.Count, "A").End(xlUp).Row
+        
+        ' Definir rango a copiar (columnas A-F)
+        Set rangoCopiar = wbOrigen.Sheets(1).Range("A1:F" & ultimaFilaOrigen)
+        
+        ' Encontrar última fila disponible en la hoja destino
+        ultimaFila = wsDestino.Cells(wsDestino.Rows.Count, "A").End(xlUp).Row + 1
+        
+        ' Copiar y pegar
+        rangoCopiar.Copy
+        wsDestino.Cells(ultimaFila, 1).PasteSpecial xlPasteValues
+        
+        ' Cerrar archivo origen sin guardar
+        wbOrigen.Close SaveChanges:=False
+        
+        ' Siguiente archivo
+        archivo = Dir
     Loop
-
-    MsgBox "Proceso terminado."
-
+    
+    Application.CutCopyMode = False
+    MsgBox "Consolidación completada.", vbInformation
 End Sub
