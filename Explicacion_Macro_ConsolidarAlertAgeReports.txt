@@ -1,11 +1,6 @@
 ConsolidarAlertAgeReports_SeleccionManual - Explicación paso a paso
 
-Este documento explica línea por línea y en bloque lo que hace la macro
-ConsolidarAlertAgeReports_SeleccionManual. Está pensado para que puedas
-copiar, pegar y entender cada parte.
-
-1) Inicio del procedimiento
-Sub ConsolidarAlertAgeReports_SeleccionManual()
+1) Sub ConsolidarAlertAgeReports_SeleccionManual()
 - Declara el procedimiento (macro). Es el nombre que verás en la lista de macros
   dentro de Excel (Alt+F8).
 
@@ -43,9 +38,8 @@ ruta = Environ$("USERPROFILE") & "\Downloads\"
 4) Obtener la hoja destino dentro del libro que contiene la macro
 Set wsDestino = ThisWorkbook.Sheets("Alert Age Report")
 
-- ThisWorkbook es el libro donde está guardada la macro.
-- Buscamos la hoja llamada exactamente "Alert Age Report".
-- Si ese nombre no existe, Excel dará error. Asegúrate de que el nombre sea exacto.
+- L2_Scraper.xlsm es el libro donde está guardada la macro.
+- Buscamos la hoja llamada exactamente "Alert Age Report"
 
 5) Buscar el primer archivo que coincida con el patrón
 archivo = Dir(ruta & "AlertAgeReport_*.xlsx")
