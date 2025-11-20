@@ -1,0 +1,86 @@
+Sub ExtraerDesdeLibrosAbiertos()
+    Dim wb As Workbook
+    Dim sourceWB As Workbook
+    Dim destWS As Worksheet
+    Dim opciones() As String
+    Dim seleccion As Variant
+    Dim i As Long
+    Dim count As Long
+    
+    Set destWS = ThisWorkbook.Worksheets("Alert Age Report")
+    
+    ' Contar cuántos libros abiertos hay aparte del libro actual
+    count = 0
+    For Each wb In Application.Workbooks
+        If wb.Name <> ThisWorkbook.Name Then
+            count = count + 1
+        End If
+    Next wb
+    
+    ' Si no hay ningún otro archivo abierto
+    If count = 0 Then
+        MsgBox "No hay otros archivos de Excel abiertos."
+        Exit Sub
+    End If
+    
+    ' Si solo hay un archivo abierto, usarlo directamente
+    If count = 1 Then
+        For Each wb In Application.Workbooks
+            If wb.Name <> ThisWorkbook.Name Then
+                Set sourceWB = wb
+                Exit For
+            End If
+        Next wb
+    Else
+        ' Si hay más de uno, pedir selección
+        ReDim opciones(1 To count)
+        
+        i = 1
+        For Each wb In Application.Workbooks
+            If wb.Name <> ThisWorkbook.Name Then
+                opciones(i) = wb.Name
+                i = i + 1
+            End If
+        Next wb
+        
+        seleccion = Application.InputBox( _
+            Prompt:="Hay varios archivos abiertos. Escribe el número del archivo que deseas usar:" & vbCrLf & _
+                    ListaArchivos(opciones), _
+            Title:="Seleccionar archivo", Type:=1)
+        
+        If seleccion = False Then Exit Sub ' Cancelar
+        
+        If seleccion < 1 Or seleccion > count Then
+            MsgBox "Selección inválida."
+            Exit Sub
+        End If
+        
+        Set sourceWB = Application.Workbooks(opciones(seleccion))
+    End If
+    
+    ' Copiar columnas A-F desde el libro fuente
+    Dim sourceWS As Worksheet
+    Set sourceWS = sourceWB.Sheets(1)
+    
+    Dim lastRow As Long
+    lastRow = sourceWS.Cells(sourceWS.Rows.Count, "A").End(xlUp).Row
+    
+    Dim destLastRow As Long
+    destLastRow = destWS.Cells(destWS.Rows.Count, "A").End(xlUp).Row + 1
+    
+    sourceWS.Range("A1:F" & lastRow).Copy destWS.Range("A" & destLastRow)
+    
+    MsgBox "Datos copiados desde " & sourceWB.Name
+End Sub
+
+Function ListaArchivos(arr() As String) As String
+    Dim txt As String
+    Dim i As Long
+    
+    txt = ""
+    For i = LBound(arr) To UBound(arr)
+        txt = txt & i & ". " & arr(i) & vbCrLf
+    Next i
+    
+    ListaArchivos = txt
+End Function
