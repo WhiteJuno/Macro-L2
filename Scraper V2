@@ -44,7 +44,7 @@ Sub ExtraerDesdeLibrosAbiertos()
         Next wb
         
         seleccion = Application.InputBox( _
-            Prompt:="Hay varios archivos abiertos. Escribe el número del archivo que deseas usar:" & vbCrLf & _
+            Prompt:="Escribe el número del archivo que deseas usar:" & vbCrLf & _
                     ListaArchivos(opciones), _
             Title:="Seleccionar archivo", Type:=1)
         
